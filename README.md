@@ -30,7 +30,17 @@ This is a command line script that takes in at least four but up to six argument
     - Integer
     - Optional (default = 1)
 
-Download the `scripy.py` file. In command line, change your current working directory to the folder that `script.py` is in by executing `cd path/to/folder`. You can now run the script using command line by executing `python script.py lat1 lng1 lat2 lng2 period rate`. You cannot specify `rate` without `period`. If either `period` or `rate` are not specified or are given invalid inputs, the respective default will be used. This script's first four arguments must be numeric for the latitude and longitude bounds, otherwise the script will not run. Additionally, please make sure to have an API key for API access. You can get your API key [here](https://aqicn.org/data-platform/token/). In order for the script to use your API key, you will need to create a file named `config.cfg` in the same working directory that `script.py` is in. Copy and paste the following into `config.cfg`:
+Download the `scripy.py` file. In command line, change your current working directory to the folder that `script.py` is in by executing `cd path/to/folder`. You can now run the script using command line by executing `python script.py lat1 lng1 lat2 lng2 period rate`.
+
+### Input constraints
+
+You cannot specify `rate` without `period`. If either `period` or `rate` are not specified or are given invalid inputs, the respective default will be used. This script's first four arguments must be numeric otherwise the script will not run, and needs at least four arguments to run. This is to ensure that the latitude and longitude bounds are given as there are no defaults for these values unlike for sampling period and the rate of sampling.
+
+If there is no recorded AQI data for stations within the latitude or longitude bounds at the time an API call is made, then only the stations with recorded AQI data are kept in that sample's data. Moreover, if there is no data recorded, the script handles that as well.
+
+### API key for API access and config.cfg file
+
+Please make sure to have an API key for API access. You can get your API key [here](https://aqicn.org/data-platform/token/). In order for the script to use your API key, you will need to create a file named `config.cfg` in the same working directory that `script.py` is in. Copy and paste the following into `config.cfg`:
 ```
 [api_keys]
 air_quality: your_api_key_here
