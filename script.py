@@ -57,11 +57,11 @@ def main(lat1, lng1, lat2, lng2, period, rate):
         results = [executor.submit(request_data, lat1, lng1, lat2, lng2, period, rate, sample) for sample in range(samples)]
 
         # Once sample data is available, store each sample's data into one DataFrame
-        appended_data = pd.DataFrame(columns=['AQI', 'Station'])
+        appended_data = pd.DataFrame(columns=['aqi', 'station.name'])
         try:
             for result in concurrent.futures.as_completed(results):
                 data = result.result()
-                appended_data = pd.concat([appended_data, data.rename(columns={'aqi': 'AQI', 'station.name': 'Station'})], ignore_index=True)
+                appended_data = pd.concat([appended_data, data], ignore_index=True)
         except KeyboardInterrupt:
             # Kill all threads if KeyboardInterrupt is detected
             executor._threads.clear()
@@ -73,15 +73,17 @@ def main(lat1, lng1, lat2, lng2, period, rate):
             concurrent.futures.thread._threads_queues.clear()
             raise
     
-    # Get average AQI of all samples per each station, and sort descending on AQI
+    # Get average AQI of all samples per each station, as well as how many samples there were per station, and sort on mean AQI in descending order
     if not appended_data.empty:
-        appended_data = appended_data.groupby('Station', as_index=False).mean()
-        appended_data = appended_data.sort_values(by=['AQI'], ascending=False)
-        appended_data = appended_data.reset_index(drop=True)
-        pd.set_option('display.max_colwidth', None)
+        appended_data = appended_data.groupby('station.name', as_index=False)['aqi'].agg(['mean', 'count'])
+        appended_data = appended_data.sort_values(by=['mean'], ascending=False)
+        appended_data = appended_data.reset_index().rename(columns={'station.name': 'Station', 'mean': 'Mean AQI', 'count': 'Number of Samples'})
         print(appended_data)
+        print(f'Average of {samples} PM2.5 readings over {period} minute(s) in stations between latitudes {lat1} and {lat2} and longitudes {lng1} and {lng2}:')
+        for index, row in appended_data.iterrows():
+            print('Average AQI: {aqi} ({sample_num} samples), Station {idx}: {station}'.format(idx=index+1, aqi=row['Mean AQI'], station=row['Station'], sample_num=row['Number of Samples']))
     else:
-        print('No data for given latitude and longitude arguments at this current time.')
+        print(f'All {samples} samples had no data for given latitude and longitude arguments at this current time. Calculating average could not be performed.')
 
 if __name__ == '__main__':
 
