@@ -67,11 +67,11 @@ def main(lat1, lng1, lat2, lng2, period, rate):
             executor._threads.clear()
             concurrent.futures.thread._threads_queues.clear()
             raise
-        except Exception as e:
+        except Exception:
             # Kill all threads if API response has error
             executor._threads.clear()
             concurrent.futures.thread._threads_queues.clear()
-            raise Exception(e) from None
+            raise
     
     # Get average AQI of all samples per each station, and sort descending on AQI
     if not appended_data.empty:
