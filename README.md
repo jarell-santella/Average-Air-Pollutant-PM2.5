@@ -48,4 +48,6 @@ air_quality: your_api_key_here
 
 ## Miscellaneous
 
-This script is I/O bound as we are fetching data from API responses. As a result, in order to ensure that the sampling period and sampling rate remains consistent even while sampling rate is high, this script uses threading. If the API responds with an error, all threads stop and the script terminates immediately a raised exception detailing what happened.
+This script is I/O bound as we are fetching data from API responses. As a result, in order to ensure performance and that the sampling period and sampling rate remains consistent even while sampling rate is high, this script uses threading. If the API responds with an error, all threads stop and the script terminates immediately with a raised exception detailing what happened. There is lots of exception handling throughout the app, and especially with what kind of arguments the user can input in command line when executing the script.
+
+Something I would like to improve on later is looking at the threads and the method I use to stop all threads. It is not a very elegant method to stop all threads to stop the script from running.
