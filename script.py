@@ -12,11 +12,11 @@ with open('config.cfg') as f:
 
 API_KEY = config.get('api_keys', 'air_quality')
 
-def request_data(lat1, lon1, lat2, lon2, period, rate, sample):
+def request_data(lat1, lng1, lat2, lng2, period, rate, sample):
     # Sleep for variable amount of time such that each sample is taken n times per minute for m minutes (where n = rate, m = period)
     time.sleep((60/rate)*sample)
     # Make API call with given arguments, get API response and transform it to JSON
-    url = f'https://api.waqi.info/v2/map/bounds?latlng={lat1},{lon1},{lat2},{lon2}&networks=all&token={API_KEY}'
+    url = f'https://api.waqi.info/v2/map/bounds?latlng={lat1},{lng1},{lat2},{lng2}&networks=all&token={API_KEY}'
     response = requests.get(url)
     response = response.json()
 
@@ -47,14 +47,14 @@ def request_data(lat1, lon1, lat2, lon2, period, rate, sample):
         print('No data for given latitude and longitude arguments at this current time.\n')
         return pd.DataFrame(columns=['aqi', 'station.name'])
 
-def main(lat1, lon1, lat2, lon2, period, rate):
+def main(lat1, lng1, lat2, lng2, period, rate):
     samples = period*rate
 
     # Use threading to make an API call n times per minute for m minutes (where n = rate, m = period)
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        print(f'Calculating average of {samples} PM2.5 readings over {period} minute(s) in stations between latitudes {lat1} and {lat2} and longitudes {lon1} and {lon2}.\n')
+        print(f'Calculating average of {samples} PM2.5 readings over {period} minute(s) in stations between latitudes {lat1} and {lat2} and longitudes {lng1} and {lng2}.\n')
 
-        results = [executor.submit(request_data, lat1, lon1, lat2, lon2, period, rate, sample) for sample in range(samples)]
+        results = [executor.submit(request_data, lat1, lng1, lat2, lng2, period, rate, sample) for sample in range(samples)]
 
         # Once sample data is available, store each sample's data into one DataFrame
         appended_data = pd.DataFrame(columns=['AQI', 'Station'])
@@ -85,7 +85,7 @@ def main(lat1, lon1, lat2, lon2, period, rate):
 
 if __name__ == '__main__':
 
-    latlon = []
+    latlng = []
 
     # Validate that there are at least 4 arguments for the 2 latitude and 2 longitude arguments
     if len(sys.argv) < 5:
@@ -99,7 +99,7 @@ if __name__ == '__main__':
         except ValueError:
             raise Exception('Expected latitude and longitude arguments to be numeric.') from None
         else:
-            latlon.append(sys.argv[i])
+            latlng.append(sys.argv[i])
 
     # Validate that the sampling period argument exists and is an integer
     # Store argument into variable if valid, otherwise give variable default value (5)
@@ -117,4 +117,4 @@ if __name__ == '__main__':
         rate = 1
         print(f'Expected integer for sampling rate in samples per second. Using default of {rate}.\n')
 
-    main(latlon[0], latlon[1], latlon[2], latlon[3], period, rate)
+    main(latlng[0], latlng[1], latlng[2], latlng[3], period, rate)
