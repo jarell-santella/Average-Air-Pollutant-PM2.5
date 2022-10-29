@@ -61,6 +61,7 @@ def main(lat1, lon1, lat2, lon2, period, rate):
         try:
             for result in concurrent.futures.as_completed(results):
                 data = result.result()
+                appended_data = pd.concat([appended_data, data.rename(columns={'aqi': 'AQI', 'station.name': 'Station'})], ignore_index=True)
         except KeyboardInterrupt:
             # Kill all threads if KeyboardInterrupt is detected
             executor._threads.clear()
@@ -71,8 +72,6 @@ def main(lat1, lon1, lat2, lon2, period, rate):
             executor._threads.clear()
             concurrent.futures.thread._threads_queues.clear()
             raise Exception(e) from None
-        else:
-            appended_data = pd.concat([appended_data, data.rename(columns={'aqi': 'AQI', 'station.name': 'Station'})], ignore_index=True)
     
     # Get average AQI of all samples per each station, and sort descending on AQI
     if not appended_data.empty:
