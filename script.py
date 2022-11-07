@@ -1,8 +1,7 @@
-import sys
 import requests
 import pandas as pd
 from configparser import ConfigParser
-import math
+from argparse import ArgumentParser
 import concurrent.futures
 import time
 
@@ -12,6 +11,12 @@ with open('config.cfg') as f:
 
 API_KEY = config.get('api_keys', 'air_quality')
 
+def positive_int(value):
+    value = int(value)
+    if value < 1:
+        raise ValueError
+    return value
+
 def request_data(lat1, lng1, lat2, lng2, period, rate, sample):
     # Sleep for variable amount of time such that each sample is taken n times per minute for m minutes (where n = rate, m = period)
     time.sleep((60/rate)*sample)
@@ -20,7 +25,7 @@ def request_data(lat1, lng1, lat2, lng2, period, rate, sample):
     response = requests.get(url)
     response = response.json()
 
-    print('Minute: {minute}, Sample: {num} - ({sample_num}/{total})'.format(minute=math.floor(sample/rate), num=sample%rate+1, sample_num=sample+1, total=period*rate))
+    print('Minute: {minute}, Sample: {num} - ({sample_num}/{total})'.format(minute=sample//rate, num=sample%rate+1, sample_num=sample+1, total=period*rate))
 
     if response['status'] == 'error':
         if response['data'] == 'Over quota':
@@ -87,36 +92,13 @@ def main(lat1, lng1, lat2, lng2, period, rate):
 
 if __name__ == '__main__':
 
-    latlng = []
+    parser = ArgumentParser(description='Calculates the average PM2.5 readings from stations within an area over a period')
+    parser.add_argument('lat1', type=float, help='Latitude bound 1')
+    parser.add_argument('lng1', type=float, help='Longitude bound 1')
+    parser.add_argument('lat2', type=float, help='Latitude bound 2')
+    parser.add_argument('lng2', type=float, help='Longitude bound 2')
+    parser.add_argument('period', nargs='?', default=5, type=positive_int, help='Sampling period in minutes')
+    parser.add_argument('rate', nargs='?', default=1, type=positive_int, help='Sampling rate in samples per minute')
+    args = parser.parse_args()
 
-    # Validate that there are at least 4 arguments for the 2 latitude and 2 longitude arguments
-    if len(sys.argv) < 5:
-        raise Exception('Expected 2 latitude and 2 longitude arguments.')
-
-    # Validate that the latitude and longitude arguments are numeric
-    # Store latitude and longitude arguments into list
-    for i in range(1, 5):
-        try:
-            float(sys.argv[i])
-        except ValueError:
-            raise Exception('Expected latitude and longitude arguments to be numeric.') from None
-        else:
-            latlng.append(sys.argv[i])
-
-    # Validate that the sampling period argument exists and is an integer
-    # Store argument into variable if valid, otherwise give variable default value (5)
-    try:
-        period = int(sys.argv[5])
-    except:
-        period = 5
-        print(f'Expected integer for sampling period in seconds. Using default of {period}.\n')
-
-    # Validate that the sampling rate argument exists is an integer
-    # Store argument into variable if valid, otherwise give variable default value (1)
-    try:
-        rate = int(sys.argv[6])
-    except:
-        rate = 1
-        print(f'Expected integer for sampling rate in samples per second. Using default of {rate}.\n')
-
-    main(latlng[0], latlng[1], latlng[2], latlng[3], period, rate)
+    main(args.lat1, args.lng1, args.lat2, args.lng2, args.period, args.rate)
