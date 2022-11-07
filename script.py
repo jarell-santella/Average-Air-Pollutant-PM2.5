@@ -12,6 +12,7 @@ with open('config.cfg') as f:
 API_KEY = config.get('api_keys', 'air_quality')
 
 def positive_int(value):
+    # If value is not a positive integer, raise ValueError
     value = int(value)
     if value < 1:
         raise ValueError
@@ -92,6 +93,7 @@ def main(lat1, lng1, lat2, lng2, period, rate):
 
 if __name__ == '__main__':
 
+    # Handle command line input arguments from user
     parser = ArgumentParser(description='Calculates the average PM2.5 readings from stations within an area over a period')
     parser.add_argument('lat1', type=float, help='Latitude bound 1')
     parser.add_argument('lng1', type=float, help='Longitude bound 1')
