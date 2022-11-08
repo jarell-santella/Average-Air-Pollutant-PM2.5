@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 import concurrent.futures
 from threading import Event
 from exceptions.api import exceptions
-import evaluators.integers
+from evaluators import integers
 import time
 
 config = ConfigParser()
@@ -33,6 +33,10 @@ def normalize_response(response):
         print('No data for given latitude and longitude arguments at this current time.\n')
         return pd.DataFrame(columns=['aqi', 'station.name'])
 
+def api_call(url):
+    response = requests.get(url)
+    return response
+
 def request_data(lat1, lng1, lat2, lng2, period, rate, sample, event):
     # Wait for thread to run given which sample number this in a minute, and continually check whether or not to kill thread while waiting
     # TODO: Make the checks have equal time intervals regardless of sample number (problem: range only accepts integer and rate can cause irrational numbers for time intervals)
@@ -43,17 +47,15 @@ def request_data(lat1, lng1, lat2, lng2, period, rate, sample, event):
 
     # Make API call with given arguments, get API response and transform it to JSON
     url = f'https://api.waqi.info/v2/map/bounds?latlng={lat1},{lng1},{lat2},{lng2}&networks=all&token={API_KEY}'
-    response = requests.get(url)
+    response = api_call(url)
     response = response.json()
 
     print('Minute: {minute}, Sample: {num} - ({sample_num}/{total})'.format(minute=sample//rate, num=sample%rate+1, sample_num=sample+1, total=period*rate))
 
     if response['status'] == 'error':
         if response['data'] == 'Over quota':
-            print("request_data api request quota error")
             raise exceptions.APIRequestQuotaError('API request failed. The request quota is over limits.')
         elif response['data'] == 'Invalid key':
-            print("request_data api invalid key error")
             raise exceptions.APIInvalidKeyError('API request failed. The key is not valid.')
 
     if(event.is_set()):
@@ -147,8 +149,8 @@ if __name__ == '__main__':
     parser.add_argument('lng1', type=float, help='Longitude bound 1')
     parser.add_argument('lat2', type=float, help='Latitude bound 2')
     parser.add_argument('lng2', type=float, help='Longitude bound 2')
-    parser.add_argument('period', nargs='?', default=5, type=evaluators.integers.positive_int, help='Sampling period in minutes')
-    parser.add_argument('rate', nargs='?', default=1, type=evaluators.integers.reasonable_positive_int, help='Sampling rate in samples per minute')
+    parser.add_argument('period', nargs='?', default=5, type=integers.positive_int, help='Sampling period in minutes')
+    parser.add_argument('rate', nargs='?', default=1, type=integers.reasonable_positive_int, help='Sampling rate in samples per minute')
     args = parser.parse_args()
 
     main(args.lat1, args.lng1, args.lat2, args.lng2, args.period, args.rate)
