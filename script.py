@@ -5,6 +5,7 @@ from argparse import ArgumentParser
 import concurrent.futures
 from threading import Event
 from exceptions.api import exceptions
+import evaluators.integers
 import time
 
 config = ConfigParser()
@@ -12,13 +13,6 @@ with open('config.cfg') as f:
     config.read_file(f)
 
 API_KEY = config.get('api_keys', 'air_quality')
-
-def positive_int(value):
-    # If value is not a positive integer, raise ValueError
-    value = int(value)
-    if value < 1:
-        raise ValueError
-    return value
 
 def normalize_response(response):
     # Flatten the JSON response's relevant data and store it in pandas DataFrame. Transform and manipulate the sample data, print, and return
@@ -40,6 +34,8 @@ def normalize_response(response):
         return pd.DataFrame(columns=['aqi', 'station.name'])
 
 def request_data(lat1, lng1, lat2, lng2, period, rate, sample, event):
+    # Wait for thread to run given which sample number this in a minute, and continually check whether or not to kill thread while waiting
+    # TODO: Make the checks have equal time intervals regardless of sample number (problem: range only accepts integer and rate can cause irrational numbers for time intervals)
     for _ in range(60):
         if event.is_set():
             return None
@@ -67,9 +63,12 @@ def request_data(lat1, lng1, lat2, lng2, period, rate, sample, event):
 
 def start_threads(lat1, lng1, lat2, lng2, period, rate):
     results_by_minute = []
+
+    # Used to kill all threads if set. Is set by raising exceptions, and the status of the event is continually checked to know whether or not to kill all threads
     event = Event()
 
     # Use threading to make an API call n times per minute for m minutes (where n = rate, m = period)
+    # TODO: Handle the case where user specifies an extremely high rate for their computer (currently handled by limiting the input argument for rate)
     with concurrent.futures.ThreadPoolExecutor() as executor:
         for minute in range(period):
 
@@ -79,6 +78,7 @@ def start_threads(lat1, lng1, lat2, lng2, period, rate):
             start = time.time()
             results = [executor.submit(request_data, lat1, lng1, lat2, lng2, period, rate, minute*rate + sample, event) for sample in range(rate)]
             
+            # Process all the samples collected per minute
             try:
                 for index, result in enumerate(concurrent.futures.as_completed(results)):
 
@@ -87,7 +87,8 @@ def start_threads(lat1, lng1, lat2, lng2, period, rate):
                 
                     response = result.result()
                     results[index] = normalize_response(response)
-
+            
+            # Kill all threads if KeyboardInterrupt or API request has error
             except KeyboardInterrupt:
                 event.set()
                 raise
@@ -98,8 +99,10 @@ def start_threads(lat1, lng1, lat2, lng2, period, rate):
                 event.set()
                 raise
             
+            # Store all of the processed samples collected per minute
             results_by_minute.append(results)
 
+            # Only move on to next minute once a minute has happened
             end = time.time()
             while end-start < 60:
 
@@ -127,7 +130,7 @@ def main(lat1, lng1, lat2, lng2, period, rate):
     # Get average AQI of all samples per each station, as well as how many samples there were per station, and sort on mean AQI in descending order
     if not appended_data.empty:
         appended_data = appended_data.groupby('station.name', as_index=False)['aqi'].agg(['mean', 'count'])
-        appended_data = appended_data.sort_values(by=['mean', 'station,name'], ascending=False)
+        appended_data = appended_data.sort_values(by=['mean', 'station.name'], ascending=False)
         appended_data = appended_data.reset_index().rename(columns={'station.name': 'Station', 'mean': 'Mean AQI', 'count': 'Number of Samples'})
         
         print(f'Average of {samples} PM2.5 readings over {period} minute(s) in stations between latitudes {lat1} and {lat2} and longitudes {lng1} and {lng2}:')
@@ -144,8 +147,8 @@ if __name__ == '__main__':
     parser.add_argument('lng1', type=float, help='Longitude bound 1')
     parser.add_argument('lat2', type=float, help='Latitude bound 2')
     parser.add_argument('lng2', type=float, help='Longitude bound 2')
-    parser.add_argument('period', nargs='?', default=5, type=positive_int, help='Sampling period in minutes')
-    parser.add_argument('rate', nargs='?', default=1, type=positive_int, help='Sampling rate in samples per minute')
+    parser.add_argument('period', nargs='?', default=5, type=evaluators.integers.positive_int, help='Sampling period in minutes')
+    parser.add_argument('rate', nargs='?', default=1, type=evaluators.integers.reasonable_positive_int, help='Sampling rate in samples per minute')
     args = parser.parse_args()
 
     main(args.lat1, args.lng1, args.lat2, args.lng2, args.period, args.rate)
