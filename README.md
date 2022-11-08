@@ -38,6 +38,8 @@ If either of these libraries are missing, you can use `pip install requests` and
 
 You can now run the script using command line by executing `python script.py lat1 lng1 lat2 lng2 period rate`.
 
+You can also execute `python script.py -h` for information on the input arguments from the command line, albeit more detailed information is available [above](#how-to-use).
+
 ### Input constraints
 
 You cannot specify `rate` without `period`. If either `period` or `rate` are not specified or are given invalid inputs, the respective default will be used. This script's first four arguments must be numeric otherwise the script will not run, and needs at least four arguments to run. This is to ensure that the latitude and longitude bounds are given as there are no defaults for these values unlike for sampling period and the rate of sampling.
