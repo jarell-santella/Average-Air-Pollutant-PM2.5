@@ -57,9 +57,9 @@ air_quality: your_api_key_here
 ### Running tests
 
 If you would like to run the tests I have included, the process is similar to how to run the Python script. Follow the first steps of changing your current working directory and making sure that the libraries that don't come in Python's standard library are installed. Next, depending on what you would like to test, you can execute any of the following in command line to test `script.py`, `evaluators/integers.py`, and `exceptions/api/exceptions.py` respectively:
-`python -m unittest tests.test_script -b`
-`python -m unittest tests.test_integers -b`
-`python -m unittest tests.test_exceptions -b`
+- `python -m unittest tests.test_script -b`
+- `python -m unittest tests.test_integers -b`
+- `python -m unittest tests.test_exceptions -b`
 
 ## Some changes
 - Uses `ArgumentParser` from `argparse` for command line input retrieval and validation
